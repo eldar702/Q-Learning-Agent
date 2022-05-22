@@ -81,7 +81,6 @@ class QLearningAgent(Executor):
     def read_Q_table(self):
         self.Q_table = np.genfromtxt(policy_file_path, delimiter='', dtype=None)
 
-
         self.actions_list = list(self.Q_table[0, 1:])
         self.states_list = self.Q_table[:, 0]
         self.states_list = [state for state in self.states_list]
@@ -139,6 +138,10 @@ class QLearningAgent(Executor):
 def there_is_policy_file():
     return os.path.exists(policy_file_path)
 
+
+#########################################################################################################
+###########################            QExecutorAgent Class              #############################
+#########################################################################################################
 class QExecutorAgent(QLearningAgent):
     ##########################             Init Functions               #################################
     def __init__(self):
@@ -164,7 +167,6 @@ class QExecutorAgent(QLearningAgent):
             chosen_action = self.choose_best_action(valid_actions)
 
         return chosen_action
-
 
     def choose_best_action(self, valid_Actions):
 
