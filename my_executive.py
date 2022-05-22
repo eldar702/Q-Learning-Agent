@@ -1,7 +1,6 @@
 import random
 import sys
 import numpy as np
-from tabulate import tabulate
 import os.path
 ##############################            Imports & Globals              #################################
 from pddlsim.executors.executor import Executor
@@ -28,7 +27,7 @@ class QLearningAgent(Executor):
         self.Q_table = None
         self.actions_list, self.states_list, self.actions_idx, self.states_idx = [], [], {}, {}
         self.alpha = 0.8
-        self.gamma = 0.8
+        self.gamma = 0.6
     def initialize(self, services):
         self.services = services
         self.initialize_Q_table()
@@ -56,10 +55,8 @@ class QLearningAgent(Executor):
         # exploit
         elif r >= self.epsilon:
             chosen_action = self.choose_best_action(valid_actions)
-        try:
-            LAST_ACTION = chosen_action.split()[0].split('(')[1]
-        except:
-            print(LAST_ACTION)
+
+        LAST_ACTION = chosen_action.split()[0].split('(')[1]
         LAST_STATE = self.get_agent_location()
         return chosen_action
 
@@ -76,9 +73,6 @@ class QLearningAgent(Executor):
 
         self.actions_idx = {k: v + 1 for v, k in enumerate(self.actions_list)}
         self.states_idx = {k: v for v, k in enumerate(self.states_list)}
-
-       # table = tabulate(Q_table_val, self.temp_actions, tablefmt="fancy_grid")
-       # print(table)
 
     def write_Q_table(self):
         f = open(policy_file_path, "w")
@@ -106,7 +100,6 @@ class QLearningAgent(Executor):
         #update the table
         self.Q_table[state_idx][action_idx] = ((1 - self.alpha) * self.Q_table[state_idx][action_idx].astype(float)) + (self.alpha * (reward + self.gamma * np.max(self.Q_table[state_idx][1:].astype(float))))
 
-
     ####################             Q - LEARNING  Methods               #############################
     def choose_best_action(self, valid_Actions):
 
@@ -127,14 +120,12 @@ class QLearningAgent(Executor):
         if self.epsilon > 0.30:
             self.epsilon *= 0.95
 
-
     def get_reward(self, action):
         if "pick-food" in action:
             return 100
         else:
             # last action is a step
             return -1
-
 
     ##############################             PDDL  Methods               #################################
     def get_agent_location(self):
@@ -146,7 +137,7 @@ class QLearningAgent(Executor):
 
 ##############################             HELPER's  Methods               #################################
 def there_is_policy_file():
-    return os.path.exists('POLICYFILE')
+    return os.path.exists(policy_file_path)
 
 class QExecutorAgent(QLearningAgent):
     ##########################             Init Functions               #################################
@@ -159,7 +150,6 @@ class QExecutorAgent(QLearningAgent):
 
 
     def next_action(self):
-
         if self.services.goal_tracking.reached_all_goals():
             return None
 
