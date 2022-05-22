@@ -27,7 +27,8 @@ class QLearningAgent(Executor):
         self.epsilon = 1
         self.Q_table = None
         self.actions_list, self.states_list, self.actions_idx, self.states_idx = [], [], {}, {}
-
+        self.alpha = 0.8
+        self.gamma = 0.8
     def initialize(self, services):
         self.services = services
         self.initialize_Q_table()
@@ -55,8 +56,10 @@ class QLearningAgent(Executor):
         # exploit
         elif r >= self.epsilon:
             chosen_action = self.choose_best_action(valid_actions)
-
-        LAST_ACTION = chosen_action.split()[0].split('(')[1]
+        try:
+            LAST_ACTION = chosen_action.split()[0].split('(')[1]
+        except:
+            print(LAST_ACTION)
         LAST_STATE = self.get_agent_location()
         return chosen_action
 
@@ -78,11 +81,12 @@ class QLearningAgent(Executor):
        # print(table)
 
     def write_Q_table(self):
-        f = open("POLICYFILE", "w")
+        f = open(policy_file_path, "w")
         np.savetxt(f, self.Q_table, fmt="%10s")
 
     def read_Q_table(self):
-        self.Q_table = np.loadtxt('POLICYFILE')
+        self.Q_table = np.genfromtxt(policy_file_path, delimiter='', dtype=None)
+
 
         self.actions_list = list(self.Q_table[0, 1:])
         self.states_list = self.Q_table[:, 0]
@@ -97,9 +101,10 @@ class QLearningAgent(Executor):
         if LAST_STATE is None or LAST_ACTION is None:
             return
         reward = self.get_reward(LAST_ACTION)
+        state_idx, action_idx = self.states_idx[LAST_STATE], self.actions_idx[LAST_ACTION]
 
         #update the table
-        self.Q_table[self.states_idx[LAST_STATE]][self.actions_idx[LAST_ACTION]] = reward
+        self.Q_table[state_idx][action_idx] = ((1 - self.alpha) * self.Q_table[state_idx][action_idx].astype(float)) + (self.alpha * (reward + self.gamma * np.max(self.Q_table[state_idx][1:].astype(float))))
 
 
     ####################             Q - LEARNING  Methods               #############################
@@ -109,7 +114,9 @@ class QLearningAgent(Executor):
         best_action = []
         best_action_value = float('-inf')
         for action in valid_Actions:
-            action_value = self.Q_table[self.states_idx[state]][self.actions_idx[action]]
+
+            just_action = action.split()[0].split('(')[1]
+            action_value = self.Q_table[self.states_idx[state]][self.actions_idx[just_action]]
             if action_value == best_action_value:
                 best_action.append(action)
             elif action_value > best_action_value:
@@ -117,7 +124,7 @@ class QLearningAgent(Executor):
         return random.choice(best_action)
 
     def change_epsilon(self):
-        if self.epsilon > 0.3:
+        if self.epsilon > 0.30:
             self.epsilon *= 0.95
 
 
@@ -144,8 +151,7 @@ def there_is_policy_file():
 class QExecutorAgent(QLearningAgent):
     ##########################             Init Functions               #################################
     def __init__(self):
-        super(QLearningAgent, self).__init__()
-
+        super(QExecutorAgent, self).__init__()
 
     def initialize(self, services):
         self.services = services
@@ -176,7 +182,8 @@ class QExecutorAgent(QLearningAgent):
         best_action = []
         best_action_value = float('-inf')
         for action in valid_Actions:
-            action_value = self.Q_table[self.states_idx[state]][self.actions_idx[action]]
+            just_action = action.split()[0].split('(')[1]
+            action_value = self.Q_table[self.states_idx[state]][self.actions_idx[just_action]]
             if action_value == best_action_value:
                 best_action.append(action)
             elif action_value > best_action_value:
