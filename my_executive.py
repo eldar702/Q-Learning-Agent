@@ -15,7 +15,7 @@ policy_file_path = sys.argv[4]
 # GLOBAL's
 LAST_STATE = None
 LAST_ACTION = None
-
+COUNTER = 0
 #########################################################################################################
 ###########################            BehaviorBaseAgent Class              #############################
 #########################################################################################################
@@ -34,7 +34,7 @@ class QLearningAgent(Executor):
 
 
     def next_action(self):
-        global LAST_ACTION, LAST_STATE
+        global LAST_ACTION, LAST_STATE, COUNTER
         chosen_action = None
         self.update_Q_table()
         self.write_Q_table()
@@ -57,7 +57,8 @@ class QLearningAgent(Executor):
             chosen_action = self.choose_best_action(valid_actions)
 
         LAST_ACTION = chosen_action.split()[0].split('(')[1]
-        LAST_STATE = self.get_agent_location()
+        COUNTER += 1
+     #   LAST_STATE = self.get_agent_location()
         return chosen_action
 
     #######################             Q - TABLE  Methods               ################################
@@ -90,9 +91,10 @@ class QLearningAgent(Executor):
 
 
     def update_Q_table(self):
-        global LAST_ACTION, LAST_STATE
-        if LAST_STATE is None or LAST_ACTION is None:
+        global LAST_ACTION, LAST_STATE, COUNTER
+        if COUNTER == 0:
             return
+        LAST_STATE = self.get_agent_location()
         reward = self.get_reward(LAST_ACTION)
         state_idx, action_idx = self.states_idx[LAST_STATE], self.actions_idx[LAST_ACTION]
 
@@ -165,6 +167,7 @@ class QExecutorAgent(QLearningAgent):
 
         else:
             chosen_action = self.choose_best_action(valid_actions)
+
 
         return chosen_action
 
