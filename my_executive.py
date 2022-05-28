@@ -1,8 +1,9 @@
+##############################            Imports & Globals              #################################
 import random
 import sys
 import numpy as np
 import os.path
-##############################            Imports & Globals              #################################
+import time
 from pddlsim.executors.executor import Executor
 from pddlsim.local_simulator import LocalSimulator
 
@@ -16,6 +17,7 @@ policy_file_path = sys.argv[4]
 LAST_STATE = None
 LAST_ACTION = None
 COUNTER = 0
+TIMER = time.time()
 #########################################################################################################
 ###########################            BehaviorBaseAgent Class              #############################
 #########################################################################################################
@@ -32,7 +34,7 @@ class QLearningAgent(Executor):
         self.services = services
         self.initialize_Q_table()
 
-
+    ##########################              Run Agent Run!                  #################################
     def next_action(self):
         global LAST_ACTION, LAST_STATE, COUNTER
         chosen_action = None
@@ -40,7 +42,7 @@ class QLearningAgent(Executor):
         self.write_Q_table()
         r = np.random.uniform(0, 1)
         self.change_epsilon()
-        if self.services.goal_tracking.reached_all_goals():
+        if self.services.goal_tracking.reached_all_goals() and minute_passed(0.5):
             return None
 
         valid_actions = self.services.valid_actions.get()
@@ -56,7 +58,10 @@ class QLearningAgent(Executor):
         elif r >= self.epsilon:
             chosen_action = self.choose_best_action(valid_actions)
 
-        LAST_ACTION = chosen_action.split()[0].split('(')[1]
+        if chosen_action is None:
+            LAST_ACTION = None
+        else:
+            LAST_ACTION = chosen_action.split()[0].split('(')[1]
         COUNTER += 1
      #   LAST_STATE = self.get_agent_location()
         return chosen_action
@@ -77,7 +82,7 @@ class QLearningAgent(Executor):
 
     def write_Q_table(self):
         f = open(policy_file_path, "w")
-        np.savetxt(f, self.Q_table, fmt="%10s")
+        np.savetxt(f, self.Q_table, fmt="%15s")
 
     def read_Q_table(self):
         self.Q_table = np.genfromtxt(policy_file_path, delimiter='', dtype=None)
@@ -92,7 +97,7 @@ class QLearningAgent(Executor):
 
     def update_Q_table(self):
         global LAST_ACTION, LAST_STATE, COUNTER
-        if COUNTER == 0:
+        if COUNTER == 0 or LAST_ACTION is None:
             return
         LAST_STATE = self.get_agent_location()
         reward = self.get_reward(LAST_ACTION)
@@ -136,11 +141,6 @@ class QLearningAgent(Executor):
         return agent_place
 
 
-##############################             HELPER's  Methods               #################################
-def there_is_policy_file():
-    return os.path.exists(policy_file_path)
-
-
 #########################################################################################################
 ###########################            QExecutorAgent Class              #############################
 #########################################################################################################
@@ -152,7 +152,6 @@ class QExecutorAgent(QLearningAgent):
     def initialize(self, services):
         self.services = services
         self.read_Q_table()
-
 
     def next_action(self):
         if self.services.goal_tracking.reached_all_goals():
@@ -167,12 +166,9 @@ class QExecutorAgent(QLearningAgent):
 
         else:
             chosen_action = self.choose_best_action(valid_actions)
-
-
         return chosen_action
 
     def choose_best_action(self, valid_Actions):
-
         state = self.get_agent_location()
         best_action = []
         best_action_value = float('-inf')
@@ -185,6 +181,15 @@ class QExecutorAgent(QLearningAgent):
                 best_action = [action]
         return random.choice(best_action)
 
+
+##############################             HELPER's  Methods               #################################
+def there_is_policy_file():
+    return os.path.exists(policy_file_path)
+
+def minute_passed( minutes_number):
+    return time.time() - TIMER >= (60 * minutes_number)
+
+#############################              Start Flags              ###################################
 if input_flag == "-L":
     print LocalSimulator().run(domain_path, problem_path, QLearningAgent())
 
